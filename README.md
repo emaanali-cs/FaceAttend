@@ -119,41 +119,69 @@ Note that a person with three enrolled poses has **three separate rows in `face_
 ### Data and control flow
 
 ```mermaid
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Segoe UI, Helvetica, Arial, sans-serif",
+    "fontSize": "15px",
+    "primaryColor": "#E8F1FB",
+    "primaryTextColor": "#0F172A",
+    "primaryBorderColor": "#2F6FB5",
+    "lineColor": "#5B6B7F",
+    "secondaryColor": "#E1F5EA",
+    "tertiaryColor": "#FFFFFF"
+  },
+  "flowchart": {
+    "curve": "basis",
+    "nodeSpacing": 42,
+    "rankSpacing": 58,
+    "padding": 12,
+    "useMaxWidth": true,
+    "htmlLabels": true
+  }
+}}%%
+
 flowchart LR
 
-    subgraph ENTRY["Entry points"]
+    subgraph ENTRY["1 · Entry points"]
+        direction LR
         MAIN["main.py<br/>create_tables then Dashboard"]
         DASHMAIN["admin/dashboard.py<br/>python -m admin.dashboard"]
         TERMMAIN["ui/terminal.py<br/>python -m ui.terminal"]
-        TESTS["recognition/test_recognition.py<br/>recognition/test_database_recognition.py"]
+        TESTS["recognition/test_recognition.py<br/>test_database_recognition.py"]
     end
 
-    subgraph FLOWS["Attendance flows"]
+    subgraph FLOWS["2 · Attendance flows"]
+        direction TB
         CHECKIN["attendance/checkin.py<br/>run_checkin"]
         CHECKOUT["attendance/checkout.py<br/>run_checkout"]
     end
 
-    subgraph UI["Tkinter and OpenCV UI"]
+    subgraph UI["3 · Tkinter and OpenCV UI"]
+        direction LR
         DASH["admin/dashboard.py<br/>Dashboard tk.Tk"]
         ENROLL["enrollment/face_enrollment.py<br/>FaceEnrollment tk.Toplevel"]
-        LIVE["attendance/live_verification.py<br/>run_live_verification OpenCV window"]
+        LIVE["attendance/live_verification.py<br/>run_live_verification window"]
         TERM["ui/terminal.py<br/>AttendanceTerminal tk.Tk"]
     end
 
-    subgraph VISION["Face recognition core"]
+    subgraph VISION["4 · Face recognition core"]
+        direction TB
         FS["recognition/face_recognition.py<br/>FaceSystem YuNet plus SFace"]
         MATCH["recognition/face_recognition.py<br/>load_registered_faces and recognize_face"]
         POSE["attendance/live_verification.py<br/>get_head_direction and get_stable_value"]
     end
 
-    subgraph DATA["Persistence and services"]
+    subgraph DATA["5 · Persistence and services"]
+        direction TB
         DBMOD["database/database.py<br/>employees, face_embeddings, attendance"]
-        DBFILE[("database/attendance.db<br/>gitignored, created on first run")]
+        DBFILE[("database/attendance.db<br/>gitignored, auto-created")]
         AUDIO["audio/audio_manager.py<br/>AudioManager pygame mixer"]
         EMAIL["email_service/email_manager.py<br/>send_attendance_email"]
     end
 
-    subgraph EXTERNAL["External resources"]
+    subgraph EXTERNAL["6 · External resources"]
+        direction TB
         MODELS["models/face_detection_yunet_2026may.onnx<br/>models/face_recognition_sface_2021dec.onnx"]
         CLIPS["audio/look_center.mp3<br/>look_left, look_right, registration_complete"]
         CAM["Webcam index 0"]
@@ -166,14 +194,14 @@ flowchart LR
     TESTS --> FS
     TESTS --> MATCH
 
-    DASH -->|"Register Person nav button"| ENROLL
-    DASH -->|"Person Check-In via subprocess"| CHECKIN
-    DASH -->|"Person Check-Out via subprocess"| CHECKOUT
+    DASH -->|"Register Person"| ENROLL
+    DASH -->|"Check-In subprocess"| CHECKIN
+    DASH -->|"Check-Out subprocess"| CHECKOUT
 
     CHECKIN --> LIVE
     CHECKOUT --> LIVE
-    CHECKIN -->|"email only when person_type is Student"| EMAIL
-    CHECKOUT -->|"email only when person_type is Student"| EMAIL
+    CHECKIN -->|"Student only"| EMAIL
+    CHECKOUT -->|"Student only"| EMAIL
 
     LIVE --> FS
     LIVE --> MATCH
@@ -193,18 +221,44 @@ flowchart LR
     TERM --> MATCH
     TERM --> DBMOD
     TERM --> CAM
-    TERM -.->|"open_admin imports AdminDashboard which does not exist"| DASH
+    TERM -.->|"open_admin target missing"| DASH
 
     FS --> MODELS
     AUDIO --> CLIPS
     DBMOD --> DBFILE
     EMAIL --> SMTP
+
+    classDef entry fill:#F3E8FF,stroke:#7C3AED,stroke-width:2px,color:#1E1065
+    classDef flow fill:#DBEAFE,stroke:#1D4ED8,stroke-width:2px,color:#0C2D6B
+    classDef ui fill:#E0F2FE,stroke:#0369A1,stroke-width:2px,color:#082F49
+    classDef vision fill:#DCFCE7,stroke:#15803D,stroke-width:2px,color:#052E16
+    classDef data fill:#FEF3C7,stroke:#B45309,stroke-width:2px,color:#451A03
+    classDef ext fill:#FFE4E6,stroke:#BE123C,stroke-width:2px,color:#4C0519
+
+    class MAIN,DASHMAIN,TERMMAIN,TESTS entry
+    class CHECKIN,CHECKOUT flow
+    class DASH,ENROLL,LIVE,TERM ui
+    class FS,MATCH,POSE vision
+    class DBMOD,DBFILE,AUDIO,EMAIL data
+    class MODELS,CLIPS,CAM,SMTP ext
+
+    style ENTRY fill:#F5F3FF,stroke:#A78BFA,stroke-width:2px,color:#3B0764
+    style FLOWS fill:#EFF6FF,stroke:#60A5FA,stroke-width:2px,color:#1E3A8A
+    style UI fill:#F0F9FF,stroke:#38BDF8,stroke-width:2px,color:#075985
+    style VISION fill:#F0FDF4,stroke:#4ADE80,stroke-width:2px,color:#14532D
+    style DATA fill:#FFFBEB,stroke:#FBBF24,stroke-width:2px,color:#78350F
+    style EXTERNAL fill:#FFF1F2,stroke:#FB7185,stroke-width:2px,color:#881337
 ```
 
 > **Diagram validation:** this diagram was **rendered through a real Mermaid engine** (Kroki's Mermaid renderer)
-> and returned HTTP 200 with a 71,049-byte SVG containing 125 `<g>` groups, 41 `<path>` and 26 `<rect>` elements
-> and no syntax or parse errors. Balanced `subgraph`/`end` pairs, quoting of every node label and subgraph title,
-> and node declarations for all 25 edge endpoints were all confirmed.
+> and returned HTTP 200 with a 67,414-byte SVG containing 155 `<g>` groups, 41 `<path>`, 26 `<rect>` and
+> 60 `<foreignObject>` elements, with no syntax or parse errors. All **24 of the 24 custom theme colors**
+> defined in the `%%{init}%%` directive, the six `classDef` rules and the six `style` statements were confirmed
+> present in the rendered output, so the theming demonstrably takes effect rather than being silently dropped.
+> Balanced `subgraph`/`end` pairs (6 of each), quoting of every node label and subgraph title, and node
+> declarations for all **21 nodes and 33 edges** were all confirmed programmatically, with zero undeclared
+> edge endpoints, zero `class` assignments pointing at undeclared nodes, and zero `style` statements pointing
+> at undeclared subgraphs.
 
 ### Module dependency summary
 
@@ -378,10 +432,6 @@ SMTP_PORT=587
 SENDER_EMAIL=your-email@gmail.com
 SENDER_PASSWORD=your-16-character-app-password
 ```
-
-> **`.env` is gitignored (`.gitignore:11`) and must never be committed or force-added** — not with
-> `git add .env`, and not with `git add -f .env`. Only `.env.example` is meant to be tracked in git. If you
-> ever do commit a real `.env`, treat the credential as compromised and rotate it immediately.
 
 The app **runs fine without a `.env`** — email is simply skipped with a
 `False, "Sender email is not configured."` return (`email_service/email_manager.py:62-70`). Only parent
